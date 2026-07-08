@@ -58,15 +58,35 @@ struct Bookmark {
 pub fn bookmarks_to_turtle(org: &str) -> String {
     let mut out = format!("@prefix dc: <{DC}> .\n");
     let mut current: Option<Bookmark> = None;
-    for line in org.lines() {
-        if let Some((url, title)) = heading_link(line) {
+    let mut lines = org.lines();
+    while let Some(line) = lines.next() {
+        // A Pinboard title can wrap: the heading opens `[[` here but closes `]]`
+        // on a later line. Stitch the continuation lines back on (as spaces) so a
+        // wrapped title parses like any other — otherwise the whole bookmark, tags
+        // and all, is silently dropped.
+        let stitched;
+        let heading = if opens_unclosed_link(line) {
+            let mut buf = line.to_string();
+            for cont in lines.by_ref() {
+                buf.push(' ');
+                buf.push_str(cont.trim());
+                if cont.contains("]]") {
+                    break;
+                }
+            }
+            stitched = buf;
+            stitched.as_str()
+        } else {
+            line
+        };
+        if let Some((url, title)) = heading_link(heading) {
             emit(&mut out, current.take());
             current = Some(Bookmark {
                 url,
                 title,
                 tags: Vec::new(),
             });
-        } else if let Some(tags) = tag_line(line) {
+        } else if let Some(tags) = tag_line(heading) {
             if let Some(b) = current.as_mut() {
                 b.tags.extend(tags);
             }
@@ -74,6 +94,15 @@ pub fn bookmarks_to_turtle(org: &str) -> String {
     }
     emit(&mut out, current);
     out
+}
+
+/// A heading line that opens an org link (`* … [[`) but doesn't close it (`]]`)
+/// on the same line — the signal to stitch continuation lines (a wrapped title).
+fn opens_unclosed_link(line: &str) -> bool {
+    let rest = line.trim_start();
+    rest.starts_with('*')
+        && rest.trim_start_matches('*').trim_start().starts_with("[[")
+        && !line.contains("]]")
 }
 
 /// Write one bookmark's triples (skolem-free: the URL *is* the subject IRI).
@@ -102,9 +131,17 @@ fn heading_link(line: &str) -> Option<(String, String)> {
     let after = after.strip_prefix("[[")?;
     let (inner, _) = after.split_once("]]")?;
     match inner.split_once("][") {
-        Some((url, title)) => Some((url.trim().to_string(), title.trim().to_string())),
+        // Collapse the title's internal whitespace so a stitched, wrapped title
+        // reads as one clean line ("NASA - \n Aquarius…" → "NASA - Aquarius…").
+        Some((url, title)) => Some((url.trim().to_string(), collapse_ws(title))),
         None => Some((inner.trim().to_string(), inner.trim().to_string())),
     }
+}
+
+/// Collapse internal whitespace runs (including the newline joins from a stitched,
+/// wrapped title) into single spaces, and trim.
+fn collapse_ws(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// A `:TAG:`/`:TAGS:` drawer line (case-insensitive) → its whitespace-separated
@@ -203,6 +240,24 @@ mod tests {
     fn non_bookmark_lines_are_ignored() {
         let ttl = bookmarks_to_turtle("* Bookmarks\nsome prose\n* Another Section\n");
         assert!(!ttl.contains("dc:title"), "{ttl}");
+    }
+
+    #[test]
+    fn a_title_that_wraps_across_lines_is_stitched_and_keeps_its_tags() {
+        // A Pinboard title split over two lines (the closing `]]` on the second) —
+        // the whole bookmark, including the drawer that follows, must survive.
+        let org = "** [[http://x][NASA - \n\
+                   Aquarius Yields Map]]\n\
+                   \x20  :PROPERTIES:\n\
+                   \x20  :TAGS: nasa science\n\
+                   \x20  :END:\n";
+        let ttl = bookmarks_to_turtle(org);
+        assert!(
+            ttl.contains("<http://x> dc:title \"NASA - Aquarius Yields Map\""),
+            "{ttl}"
+        );
+        assert!(ttl.contains("dc:subject \"nasa\""), "{ttl}");
+        assert!(ttl.contains("dc:subject \"science\""), "{ttl}");
     }
 
     #[test]
