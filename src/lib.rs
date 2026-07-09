@@ -3,10 +3,12 @@
 //!
 //! First endpoint: **`urn:cms:bookmarks`** reads an org-mode bookmarks file — level
 //! headings of the form `[[url][title]]` with an optional `:TAG:` drawer — and emits
-//! Turtle: each bookmark is a resource keyed by its URL, carrying `dc:title` and a
-//! `dc:subject` per tag. Using `dc:subject` is deliberate: a Zotero export tags its
-//! library items with `dc:subject` too, so bookmarks and books land in ONE tag space
-//! with no reconciliation — `?x dc:subject "wasm"` returns both.
+//! Turtle: each bookmark is a **skolemized** resource (a stable `urn:cms:bookmark:*`
+//! IRI hashed from its URL — real URLs aren't all valid IRIs), carrying its URL as a
+//! `dc:identifier` literal, a `dc:title`, and a `dc:subject` per tag. Using
+//! `dc:subject` is deliberate: a Zotero export tags its library items with
+//! `dc:subject` too, so bookmarks and books land in ONE tag space with no
+//! reconciliation — `?x dc:subject "wasm"` returns both.
 //!
 //! Pure + wasm-clean: it transrepts piped text and never touches the filesystem — a
 //! host pipes the file through the kernel
@@ -30,8 +32,9 @@ fn bookmarks() -> FnEndpoint {
         Description::new("bookmarks")
             .summary(
                 "Transrept an org-mode bookmarks file into RDF/Turtle: each `[[url][title]]` \
-                 heading (with an optional `:TAG:` drawer) becomes a resource keyed by its URL, \
-                 with dc:title and a dc:subject per tag — the same tag axis a Zotero export uses.",
+                 heading (with an optional `:TAG:` drawer) becomes a skolemized \
+                 `urn:cms:bookmark:*` resource carrying its URL as dc:identifier, a dc:title, \
+                 and a dc:subject per tag — the same tag axis a Zotero export uses.",
             )
             .verb(Verb::Source)
             .input(ArgSpec::new("in").summary("the org bookmarks text (piped)")),
@@ -47,7 +50,8 @@ fn bookmarks_impl(inv: &Invocation<'_>) -> Result<Representation> {
     .cacheable())
 }
 
-/// A parsed bookmark: its URL (the resource's identity), title, and tags.
+/// A parsed bookmark: its URL (carried as `dc:identifier`; the subject IRI is a
+/// skolem hashed from it), title, and tags.
 struct Bookmark {
     url: String,
     title: String,
@@ -105,12 +109,16 @@ fn opens_unclosed_link(line: &str) -> bool {
         && !line.contains("]]")
 }
 
-/// Write one bookmark's triples (skolem-free: the URL *is* the subject IRI).
+/// Write one bookmark's triples. Skolemized: the subject is a stable minted IRI (a
+/// hash of the URL), NOT the raw URL — real bookmark URLs aren't all valid IRIs. The
+/// URL rides as a `dc:identifier` literal, so a malformed URL (bare `%`, stray `#`, …)
+/// can never leak into an invalid subject IRI.
 fn emit(out: &mut String, bookmark: Option<Bookmark>) {
     let Some(b) = bookmark else { return };
     out.push_str(&format!(
-        "\n<{}> dc:title {}",
-        iri_ref(&b.url),
+        "\n<{}> dc:identifier {} ;\n    dc:title {}",
+        skolem(&b.url),
+        ttl_str(&b.url),
         ttl_str(&b.title)
     ));
     for tag in &b.tags {
@@ -177,26 +185,16 @@ fn ttl_str(s: &str) -> String {
     out
 }
 
-/// Percent-encode the characters an `<…>` Turtle IRIREF forbids (space and
-/// `<>"{}|^\`\\`), leaving an otherwise-verbatim URL.
-fn iri_ref(url: &str) -> String {
-    let mut out = String::with_capacity(url.len());
-    for c in url.chars() {
-        match c {
-            ' ' => out.push_str("%20"),
-            '<' => out.push_str("%3C"),
-            '>' => out.push_str("%3E"),
-            '"' => out.push_str("%22"),
-            '{' => out.push_str("%7B"),
-            '}' => out.push_str("%7D"),
-            '|' => out.push_str("%7C"),
-            '^' => out.push_str("%5E"),
-            '`' => out.push_str("%60"),
-            '\\' => out.push_str("%5C"),
-            c => out.push(c),
-        }
+/// A stable, opaque, always-valid IRI for a bookmark: FNV-1a over its URL. The URL
+/// itself is carried as a `dc:identifier` literal, so a malformed URL can never leak
+/// into an invalid subject IRI. Same URL → same subject, so the graph stays diffable.
+fn skolem(url: &str) -> String {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in url.bytes() {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     }
-    out
+    format!("urn:cms:bookmark:{hash:016x}")
 }
 
 #[cfg(test)]
@@ -204,17 +202,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_bookmark_becomes_a_dc_resource_keyed_by_its_url() {
+    fn a_bookmark_becomes_a_skolemized_resource_carrying_its_url() {
         let org = "* Bookmarks\n\
                    ** [[https://webassembly][WebAssembly]]\n\
                    \x20  :PROPERTIES:\n\
                    \x20  :TAG: webassembly wasm\n\
                    \x20  :END:\n";
         let ttl = bookmarks_to_turtle(org);
+        // Subject is a stable minted urn; the URL rides as a dc:identifier literal.
+        assert!(ttl.contains("<urn:cms:bookmark:"), "{ttl}");
         assert!(
-            ttl.contains("<https://webassembly> dc:title \"WebAssembly\""),
+            ttl.contains("dc:identifier \"https://webassembly\""),
             "{ttl}"
         );
+        assert!(ttl.contains("dc:title \"WebAssembly\""), "{ttl}");
         assert!(ttl.contains("dc:subject \"webassembly\""), "{ttl}");
         assert!(ttl.contains("dc:subject \"wasm\""), "{ttl}");
     }
@@ -230,8 +231,9 @@ mod tests {
 
     #[test]
     fn a_link_without_a_title_uses_the_url_and_a_title_quote_is_escaped() {
-        assert!(bookmarks_to_turtle("** [[https://x]]\n")
-            .contains("<https://x> dc:title \"https://x\""));
+        let ttl = bookmarks_to_turtle("** [[https://x]]\n");
+        assert!(ttl.contains("dc:identifier \"https://x\""), "{ttl}");
+        assert!(ttl.contains("dc:title \"https://x\""), "{ttl}");
         let ttl = bookmarks_to_turtle("** [[https://y][He said \"hi\"]]\n");
         assert!(ttl.contains("dc:title \"He said \\\"hi\\\"\""), "{ttl}");
     }
@@ -252,8 +254,9 @@ mod tests {
                    \x20  :TAGS: nasa science\n\
                    \x20  :END:\n";
         let ttl = bookmarks_to_turtle(org);
+        assert!(ttl.contains("dc:identifier \"http://x\""), "{ttl}");
         assert!(
-            ttl.contains("<http://x> dc:title \"NASA - Aquarius Yields Map\""),
+            ttl.contains("dc:title \"NASA - Aquarius Yields Map\""),
             "{ttl}"
         );
         assert!(ttl.contains("dc:subject \"nasa\""), "{ttl}");
@@ -261,8 +264,35 @@ mod tests {
     }
 
     #[test]
-    fn a_url_with_a_space_is_iri_escaped() {
-        let ttl = bookmarks_to_turtle("** [[https://ex.com/a b][A B]]\n");
-        assert!(ttl.contains("<https://ex.com/a%20b>"), "{ttl}");
+    fn a_malformed_url_yields_a_valid_subject_and_a_verbatim_identifier() {
+        // The reason to skolemize: a bare `%`, a stray `#`, or a space make a URL an
+        // invalid IRI. It must never be the subject — the subject is always a urn, and
+        // the URL is carried verbatim as a dc:identifier literal.
+        for url in [
+            "https://ex.com/a%qi",
+            "https://ex.com/p#a#b",
+            "https://ex.com/a b",
+        ] {
+            let ttl = bookmarks_to_turtle(&format!("** [[{url}][X]]\n"));
+            assert!(ttl.contains("<urn:cms:bookmark:"), "not skolemized: {ttl}");
+            assert!(
+                !ttl.contains(&format!("<{url}>")),
+                "raw URL leaked as IRI: {ttl}"
+            );
+            assert!(
+                ttl.contains(&format!("dc:identifier \"{url}\"")),
+                "URL not carried verbatim: {ttl}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_same_url_skolemizes_stably() {
+        // Same URL → same subject (diffable), regardless of the title.
+        let ttl = bookmarks_to_turtle("** [[https://ex.com/x][Anything]]\n");
+        assert!(
+            ttl.contains(&format!("<{}>", skolem("https://ex.com/x"))),
+            "{ttl}"
+        );
     }
 }
