@@ -12,7 +12,17 @@
 //!
 //! Pure + wasm-clean: it transrepts piped text and never touches the filesystem — a
 //! host pipes the file through the kernel
-//! (`source urn:file:bookmarks.org | urn:cms:bookmarks`).
+//! (`source urn:file:bookmarks.org | urn:cms:bookmarks`). `in` is required: a call
+//! without it is a `MissingArgument`, never an empty graph (an empty `in` IS an empty
+//! graph — a bookmarks file with nothing in it). The result is `.cacheable()` with an
+//! empty golden-thread set BY DESIGN: the input arrives by value, so it is part of the
+//! cache key, and the file's own thread lives on the file's representation upstream of
+//! the pipe — cutting it recomputes the file, which is a new `in`, which is a new key.
+//! Nothing here can be served stale, and nothing here needs cutting.
+//!
+//! The module recipe is held by `ikigai-conformance` (`tests/conformance.rs`): the
+//! one endpoint is declared `pure` and `cacheable`, so a future dependency that
+//! silently downgraded the effective expiry is a red test, not a slow read.
 
 use ikigai_core::{
     ArgSpec, Description, Exact, FnEndpoint, Invocation, ReprType, Representation, Result, Verb,
@@ -21,6 +31,9 @@ use ikigai_core::{
 /// The Dublin Core Elements namespace — the vocabulary a Zotero export speaks, so
 /// titles (`dc:title`) and tags (`dc:subject`) unify across bookmarks and books.
 const DC: &str = "http://purl.org/dc/elements/1.1/";
+
+/// The XSD datatype of `in`: the org text itself, by value.
+const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
 
 /// The `urn:cms:*` space. Grows as sources are added (Zotero, notes, `oa:` …).
 pub fn space() -> ikigai_core::EndpointSpace {
@@ -37,12 +50,18 @@ fn bookmarks() -> FnEndpoint {
                  and a dc:subject per tag — the same tag axis a Zotero export uses.",
             )
             .verb(Verb::Source)
-            .input(ArgSpec::new("in").summary("the org bookmarks text (piped)")),
+            .input(
+                ArgSpec::new("in")
+                    .summary("the org bookmarks text (piped)")
+                    .class(XSD_STRING),
+            )
+            .output("text/turtle"),
     )
 }
 
 fn bookmarks_impl(inv: &Invocation<'_>) -> Result<Representation> {
-    let org = inv.inline_str("in").unwrap_or("");
+    // Required means required: absent is `MissingArgument`, not an empty graph.
+    let org = inv.inline_str("in")?;
     Ok(Representation::new(
         ReprType::new("text/turtle").with_param("charset", "utf-8"),
         bookmarks_to_turtle(org).into_bytes(),
