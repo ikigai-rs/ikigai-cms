@@ -1,6 +1,6 @@
 [package]
 name = "ikigai-cms"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Semantic-CMS transreptors for ikigai (urn:cms:*): turn personal content — org-mode bookmarks, notes, library metadata — into ONE RDF graph where everything is a tagged, linkable, queryable resource. First endpoint: org bookmarks -> RDF on the dc:subject tag axis a Zotero export already speaks."
@@ -18,3 +18,8 @@ ikigai-core = "0.1.46"
 
 [dev-dependencies]
 futures = "0.3"
+# The module recipe as one test (`tests/conformance.rs`): every endpoint this crate
+# binds, every action each declares, every checkable rule at once. 0.1.0 is the first
+# release; it pulls ikigai-core 0.1.67 (`Kernel::entries` listing the kernel's own
+# operations), which the caret above admits.
+ikigai-conformance = "0.1.0"
