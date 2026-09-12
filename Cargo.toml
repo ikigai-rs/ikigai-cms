@@ -22,4 +22,4 @@ futures = "0.3"
 # binds, every action each declares, every checkable rule at once. 0.1.0 is the first
 # release; it pulls ikigai-core 0.1.67 (`Kernel::entries` listing the kernel's own
 # operations), which the caret above admits.
-ikigai-conformance = "0.1.0"
+ikigai-conformance = "0.2.0"
