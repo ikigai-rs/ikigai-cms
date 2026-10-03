@@ -12,9 +12,11 @@
 //! vacuous (the suite's PENDING #26). Two declarations, stated once:
 //!
 //! - `pure` — the endpoint reads nothing but `in`: no file, network, clock or
-//!   platform read. Its cacheable result rightly carries an empty golden-thread
-//!   set: the input is by value, so it is part of the cache key, and the file's
-//!   own thread lives on the file's representation upstream of the pipe.
+//!   platform read. Its cacheable result rightly carries no golden thread but
+//!   its own name's (which core 0.1.73 hangs on every cacheable answer, and
+//!   nothing cuts for a pure function): the input is by value, so it is part of
+//!   the cache key, and the file's own thread lives on the file's representation
+//!   upstream of the pipe.
 //! - `cacheable` — the result is marked `.cacheable()`. Holding the suite to that
 //!   turns a future sub-resolution that silently downgraded the effective expiry
 //!   into a red test instead of a ~2000× slowdown (the incident that started in
@@ -55,7 +57,7 @@ use std::sync::Arc;
 
 use ikigai_conformance::{rdf, Fixture, Report, Suite};
 use ikigai_core::{
-    ArgRef, Capability, Error, Expiry, Iri, Kernel, Representation, Request, Result, Verb,
+    ArgRef, Capability, Error, Expiry, Iri, Kernel, Representation, Request, Result, Thread, Verb,
 };
 
 /// The endpoint's description id.
@@ -319,9 +321,9 @@ fn the_turtle_face_is_the_bookmark_graph() {
 }
 
 /// The cache contract, timing-free, with the second computation the suite lacks:
-/// the result is `Expiry::Never` with an EMPTY thread set (the input is by value,
-/// so it is the cache key — nothing external to cut), the second read is a hit
-/// with the same bytes, those bytes are what an independent computation through
+/// the result is `Expiry::Never` carrying no thread but its own name (the input is
+/// by value, so it is the cache key — nothing external to cut), the second read is
+/// a hit with the same bytes, those bytes are what an independent computation through
 /// the pure function produces, and a different `in` is a different result while
 /// the first stays cached. A future sub-resolution that downgraded the expiry
 /// fails the first assertion here and the `cacheable` declaration in [`conforms`].
@@ -335,9 +337,15 @@ fn a_cached_read_is_a_pure_function_of_its_input() {
         Expiry::Never,
         "a pure function: cached outright"
     );
+    // Core 0.1.73 hangs every cacheable answer on its own canonical name's thread
+    // (ledger #512 hole A), a thread nobody cuts for a pure function. So purity is
+    // "no thread but its own name", which still refuses a FOREIGN thread (a file,
+    // a clock, a sub-resolution) and holds on either side of 0.1.73.
+    let own = Thread::new(BOOKMARKS_IRI);
     assert!(
-        first.threads().is_empty(),
-        "no golden thread: the input IS the state, and it is the cache key"
+        first.threads().iter().all(|t| *t == own),
+        "carries only its own thread: the input IS the state, and it is the cache key; got {:?}",
+        first.threads()
     );
     assert!(kernel.is_cached(&source(Some(ORG)), &Capability::root()));
 

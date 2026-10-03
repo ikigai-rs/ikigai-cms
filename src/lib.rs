@@ -14,10 +14,12 @@
 //! host pipes the file through the kernel
 //! (`source urn:file:bookmarks.org | urn:cms:bookmarks`). `in` is required: a call
 //! without it is a `MissingArgument`, never an empty graph (an empty `in` IS an empty
-//! graph — a bookmarks file with nothing in it). The result is `.cacheable()` with an
-//! empty golden-thread set BY DESIGN: the input arrives by value, so it is part of the
-//! cache key, and the file's own thread lives on the file's representation upstream of
-//! the pipe — cutting it recomputes the file, which is a new `in`, which is a new key.
+//! graph — a bookmarks file with nothing in it). The result is `.cacheable()` and
+//! carries no golden thread but its own name's BY DESIGN (core 0.1.73 hangs every
+//! cacheable answer on its own name, a thread nothing cuts here): the input arrives by
+//! value, so it is part of the cache key, and the file's own thread lives on the file's
+//! representation upstream of the pipe — cutting it recomputes the file, which is a new
+//! `in`, which is a new key.
 //! Nothing here can be served stale, and nothing here needs cutting.
 //!
 //! The module recipe is held by `ikigai-conformance` (`tests/conformance.rs`): the

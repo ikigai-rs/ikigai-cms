@@ -28,9 +28,10 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   ```
 
   `in` is required (a call without it is a `MissingArgument`; an empty file is an
-  empty graph). The result is cacheable with no golden thread by design: the input
-  arrives by value and is the cache key, and the file's thread lives on the file's
-  representation upstream of the pipe.
+  empty graph). The result is cacheable with no golden thread but its own name's by
+  design (core 0.1.73 hangs every cacheable answer on its own name, a thread nothing
+  cuts here): the input arrives by value and is the cache key, and the file's thread
+  lives on the file's representation upstream of the pipe.
 
 ## Conformance
 
