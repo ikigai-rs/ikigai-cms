@@ -33,7 +33,7 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   cuts here): the input arrives by value and is the cache key, and the file's thread
   lives on the file's representation upstream of the pipe.
 
-## Unreleased
+## 0.1.4 (2026-10-07)
 
 Parser fixes from the 2026-10-07 audit (ledger [#876](http://localhost:1060/l/default/item/876); `tests/parser_audit.rs`). The
 public API is unchanged, so the version call is a **patch: 0.1.4** (not bumped here).
