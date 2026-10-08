@@ -33,6 +33,32 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   cuts here): the input arrives by value and is the cache key, and the file's thread
   lives on the file's representation upstream of the pipe.
 
+## Unreleased
+
+Parser fixes from the 2026-10-07 audit (ledger [#876](http://localhost:1060/l/default/item/876); `tests/parser_audit.rs`). The
+public API is unchanged, so the version call is a **patch: 0.1.4** (not bumped here).
+
+- **Every heading is a record boundary.** A heading whose `[[` never closes no longer
+  swallows the bookmark after it (the wrapped-title stitcher stops at any heading), and
+  a `:TAGS:` drawer under a non-link heading (`* Private notes`) no longer lands on the
+  bookmark before it. The unclosed heading itself is not a link in org, so it is
+  dropped, and the output names its line in a Turtle comment
+  (`# line N: skipped a link heading …`).
+- A heading may carry org's default TODO keyword (`TODO`, `DONE`) and a priority cookie
+  (`[#A]`) before its link; it was silently dropped. Prose before the link
+  (`Notes on [[…]]`) is still a heading about a link, not a bookmark.
+- A URL wrapped across lines is joined with no inserted space (titles still collapse
+  their whitespace).
+- A leading byte-order mark no longer hides the first heading.
+- Org's link-target escapes (`\[`, `\]`, and a doubled backslash run before a bracket
+  or at the end) are removed before the identifier and its skolem are computed, so an
+  escaped URL gets the same `urn:cms:bookmark:*` subject as the plain URL. That changes
+  the skolem of any bookmark whose target was escaped; the live library has none.
+
+What a consumer sees: on the live library (4,301 bookmarks, 183 wrapped titles) the
+output is byte-identical before and after. The changes surface only on files with the
+malformed or org-native shapes above.
+
 ## Conformance
 
 Passes [`ikigai-conformance`](https://github.com/ikigai-rs/ikigai-conformance)
