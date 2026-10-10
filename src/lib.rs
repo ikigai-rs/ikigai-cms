@@ -43,9 +43,18 @@ const DC: &str = "http://purl.org/dc/elements/1.1/";
 /// The XSD datatype of `in`: the org text itself, by value.
 const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
 
+/// The name [`space`] claims: `urn:iki:space:cms`.
+pub const SPACE_ID: &str = "urn:iki:space:cms";
+
 /// The `urn:cms:*` space. Grows as sources are added (Zotero, notes, `oa:` …).
+///
+/// Configuration-free (no parameters, nothing read while building it), so it names
+/// itself [`SPACE_ID`]: every call holds the same doors. The name goes on LAST, since
+/// a later `bind` drops it.
 pub fn space() -> ikigai_core::EndpointSpace {
-    ikigai_core::EndpointSpace::new().bind(Exact::new("urn:cms:bookmarks"), bookmarks())
+    ikigai_core::EndpointSpace::new()
+        .bind(Exact::new("urn:cms:bookmarks"), bookmarks())
+        .named(ikigai_core::space_iri("cms"))
 }
 
 fn bookmarks() -> FnEndpoint {
