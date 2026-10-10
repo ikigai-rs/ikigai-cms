@@ -36,6 +36,14 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   cuts here): the input arrives by value and is the cache key, and the file's thread
   lives on the file's representation upstream of the pipe.
 
+## 0.2.0 (2026-10-09)
+
+`ikigai_cms::space()` names itself `urn:iki:space:cms` (`ikigai_cms::SPACE_ID`; ledger
+[#987](http://localhost:1060/l/default/item/987)). The name changes what a host sees in
+`answered_by`, `urn:kernel:topology` and cache partitioning, so this is a **minor** bump: a
+host adopts it deliberately. Requires `ikigai-core` 0.1.89. The endpoint and its output are
+unchanged.
+
 ## 0.1.4 (2026-10-07)
 
 Parser fixes from the 2026-10-07 audit (ledger [#876](http://localhost:1060/l/default/item/876); `tests/parser_audit.rs`). The
