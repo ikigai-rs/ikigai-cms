@@ -14,12 +14,15 @@ categories = ["wasm"]
 [dependencies]
 # The released kernel, consumed from crates.io — the SAME version the hosts use,
 # so a host links exactly one `ikigai-core` (no duplicate-crate type mismatch).
-ikigai-core = "0.1.46"
+# 0.1.89 is the floor for `space_iri` (the space's name, `SPACE_ID`) and for `bind`
+# dropping a name, so a host that extends this space never carries it over
+# different doors. Under 0.x a caret is a range: this admits <0.2.0.
+ikigai-core = "0.1.89"
 
 [dev-dependencies]
 futures = "0.3"
 # The module recipe as one test (`tests/conformance.rs`): every endpoint this crate
-# binds, every action each declares, every checkable rule at once. 0.1.0 is the first
-# release; it pulls ikigai-core 0.1.67 (`Kernel::entries` listing the kernel's own
-# operations), which the caret above admits.
-ikigai-conformance = "0.2.0"
+# binds, every action each declares, every checkable rule at once. 0.6.0 is the floor
+# for SPACE-NAME (`Suite::self_named_space`). Under 0.x a caret is a CEILING too:
+# "0.6.0" admits <0.7.0, so a newer definition of "done" is a deliberate bump here.
+ikigai-conformance = "0.6.0"

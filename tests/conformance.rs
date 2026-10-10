@@ -50,6 +50,13 @@
 //! - **The fixture id is the description id** ([`the_fixture_id_is_the_description_id`]):
 //!   a `Fixture` that matches no description is silently inert (PENDING #57).
 //!
+//! ## The space's name
+//!
+//! [`ikigai_cms::space`] is configuration-free (no parameters, nothing read while
+//! building it), so it is declared self-named: SPACE-NAME calls it twice and holds
+//! both calls to `urn:iki:space:cms` over the same doors, and [`conforms`] pins
+//! [`ikigai_cms::SPACE_ID`] to that name. It is the crate's only space constructor.
+//!
 //! No opt-outs, NAMES runs (`bookmarks` is kebab-case).
 
 use std::collections::BTreeSet;
@@ -148,11 +155,13 @@ fn conforms() {
     let report = suite()
         .pure(BOOKMARKS)
         .cacheable(BOOKMARKS)
+        .self_named_space("cms", ikigai_cms::space)
         .run_blocking(&kernel);
     // Printed even when clean (`--nocapture`): the report is the record.
     eprintln!("{report}");
     assert!(report.is_clean(), "{report}");
     assert_shape(&report);
+    assert_eq!(ikigai_core::space_iri("cms").as_str(), ikigai_cms::SPACE_ID);
 }
 
 /// `Fixture::new(id, …)` is looked up by description id; an id that matches no

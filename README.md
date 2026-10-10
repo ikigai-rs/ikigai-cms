@@ -17,6 +17,9 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
 
 ## Endpoints
 
+`ikigai_cms::space()` is configuration-free, so it names itself `urn:iki:space:cms`
+(`ikigai_cms::SPACE_ID`).
+
 - **`urn:cms:bookmarks`** — transrept an org-mode bookmarks file into Turtle. Each
   `[[url][title]]` heading (with an optional `:TAG:` drawer) becomes a resource
   keyed by its URL, with `dc:title` and a `dc:subject` per tag. Pure and
