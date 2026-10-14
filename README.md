@@ -76,7 +76,7 @@ Passes [`ikigai-conformance`](https://github.com/ikigai-rs/ikigai-conformance)
 (`tests/conformance.rs`): the endpoint is declared `pure` and `cacheable`, so a
 dependency that silently downgraded its effective expiry is a red test. The one
 vocabulary the faces speak is Dublin Core Elements 1.1
-(`http://purl.org/dc/elements/1.1/`, registered with the suite): `dc:identifier`,
+(`http://purl.org/dc/elements/1.1/`, well known to the suite since 0.8.0): `dc:identifier`,
 `dc:title`, `dc:subject`. Subjects are `urn:cms:bookmark:{fnv1a-of-url}` skolems;
 there is no other `urn:cms:` term and no `ik:` term on the graph.
 

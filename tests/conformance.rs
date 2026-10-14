@@ -23,16 +23,19 @@
 //!   this graph's consumer, `ikigai-cms-web`).
 //!
 //! One namespace: Dublin Core ELEMENTS 1.1 (`http://purl.org/dc/elements/1.1/`),
-//! the vocabulary a Zotero export speaks and the whole point of the module. It is
-//! not in the suite's well-known list (only `dcterms` is), so it is registered
-//! here and named in the README.
+//! the vocabulary a Zotero export speaks and the whole point of the module. The
+//! suite knows it as well known since 0.8.0 (ledger #343), so it is NOT registered
+//! with `Suite::namespace`: a registration that accounts for no term is a
+//! DECLARATIONS finding, and this one became exactly that on the upgrade.
 //!
 //! ## What the suite cannot hold and this file pins by hand
 //!
-//! - **Required is required** ([`in_is_required`]): the minimal call always
-//!   supplies `in`, so an `in` the endpoint did without would be invisible to
-//!   ARGSPECS (PENDING #49/#99). It was: `unwrap_or("")` served an empty graph for
-//!   a call with no input until 0.1.3.
+//! - **Required is required** ([`in_is_required`]): since 0.8.0 the suite's
+//!   REQUIRED check drops `in` from the call it resolved and holds the refusal to a
+//!   typed error. The hand test stays for what REQUIRED does not pin: the error is
+//!   `MissingArgument` naming `in`, and an EMPTY `in` is an empty graph rather than
+//!   a refusal. It was: `unwrap_or("")` served an empty graph for a call with no
+//!   input until 0.1.3.
 //! - **Declared outputs are the media types served** ([`declared_outputs_are_the_media_types_served`]):
 //!   0.1.0 compares nothing that is not an RDF face, and only once declared
 //!   (PENDING #11/#31/#79). The Turtle face was served without being an output
@@ -71,7 +74,7 @@ use ikigai_core::{
 const BOOKMARKS: &str = "bookmarks";
 const BOOKMARKS_IRI: &str = "urn:cms:bookmarks";
 
-/// Dublin Core Elements 1.1: the module's one vocabulary, registered with the suite.
+/// Dublin Core Elements 1.1: the module's one vocabulary (well known to the suite).
 const DC: &str = "http://purl.org/dc/elements/1.1/";
 const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
 
@@ -105,12 +108,11 @@ fn kernel() -> Kernel {
     Kernel::new(Arc::new(ikigai_cms::space()))
 }
 
-/// The suite, configured for this module: a real bookmarks text for `in` and the
-/// Dublin Core namespace the faces speak.
+/// The suite, configured for this module: a real bookmarks text for `in`. The
+/// Dublin Core namespace the faces speak is well known to the suite, so nothing
+/// registers it.
 fn suite() -> Suite {
-    Suite::new()
-        .fixture(Fixture::new(BOOKMARKS, Verb::Source).arg("in", ORG))
-        .namespace(DC)
+    Suite::new().fixture(Fixture::new(BOOKMARKS, Verb::Source).arg("in", ORG))
 }
 
 fn source(org: Option<&str>) -> Request {

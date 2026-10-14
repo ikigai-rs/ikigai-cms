@@ -22,7 +22,8 @@ ikigai-core = "0.1.89"
 [dev-dependencies]
 futures = "0.3"
 # The module recipe as one test (`tests/conformance.rs`): every endpoint this crate
-# binds, every action each declares, every checkable rule at once. 0.6.0 is the floor
-# for SPACE-NAME (`Suite::self_named_space`). Under 0.x a caret is a CEILING too:
-# "0.6.0" admits <0.7.0, so a newer definition of "done" is a deliberate bump here.
-ikigai-conformance = "0.6.0"
+# binds, every action each declares, every checkable rule at once. 0.8.0 is the floor
+# for REQUIRED and for Dublin Core Elements 1.1 being well known (the test registers no
+# namespace). Under 0.x a caret is a CEILING too: "0.8.0" admits <0.9.0, so a newer
+# definition of "done" is a deliberate bump here.
+ikigai-conformance = "0.8.0"
