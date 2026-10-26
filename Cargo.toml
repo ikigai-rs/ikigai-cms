@@ -1,6 +1,6 @@
 [package]
 name = "ikigai-cms"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Semantic-CMS transreptors for ikigai (urn:cms:*): turn personal content — org-mode bookmarks, notes, library metadata — into ONE RDF graph where everything is a tagged, linkable, queryable resource. First endpoint: org bookmarks -> RDF on the dc:subject tag axis a Zotero export already speaks."
@@ -14,18 +14,13 @@ categories = ["wasm"]
 [dependencies]
 # The released kernel, consumed from crates.io — the SAME version the hosts use,
 # so a host links exactly one `ikigai-core` (no duplicate-crate type mismatch).
-# 0.1.89 is the floor for `space_iri` (the space's name, `SPACE_ID`) and for `bind`
-# dropping a name, so a host that extends this space never carries it over
-# different doors. Under 0.x a caret is a range: this admits <0.2.0.
-ikigai-core = "0.1.89"
+# 0.2.0 is the streams release (ledger #2261). The old 0.1 pin meant
+# <0.2.0 under 0.x caret rules.
+ikigai-core = "0.2.0"
 
 [dev-dependencies]
 futures = "0.3"
 # The module recipe as one test (`tests/conformance.rs`): every endpoint this crate
-# binds, every action each declares, every checkable rule at once. 0.9 added core
-# 0.1.105's contract-shape checks (REQUIRED probes input groups, OUTPUTS honors
-# output_from, PIPELINE's named-only line, VALIDATE refuses a default on a binding)
-# and RECOMPUTE; 0.10 adds FAILURES, OFF unless a suite opts in. Under 0.x a caret is
-# a range: "0.10.0" admits <0.11.0, so a newer definition of "done" is a deliberate
-# bump here.
-ikigai-conformance = "0.10.0"
+# binds, every action each declares, every checkable rule at once. 0.11 enables
+# DATATYPES and FAILURES by default, alongside core 0.2.0.
+ikigai-conformance = "0.11.0"

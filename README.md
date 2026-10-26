@@ -36,6 +36,18 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   cuts here): the input arrives by value and is the cache key, and the file's thread
   lives on the file's representation upstream of the pipe.
 
+## 0.3.0 (2026-10-26)
+
+Moves to `ikigai-core` 0.2.0, the streams release (ledger #2261), and
+`ikigai-conformance` 0.11.0. Core types are part of this crate's public API, so
+consumers must adopt this breaking minor release together with core 0.2.0.
+The old core 0.1 pin admitted only versions below 0.2.0 under 0.x caret rules.
+
+Conformance now requires zero skipped checks, including the newly enabled
+DATATYPES and FAILURES checks. The bookmarks Turtle graph passes without a
+waiver; its action declares no failure classes for FAILURES to compare. The
+endpoint and its output are unchanged.
+
 ## 0.2.0 (2026-10-09)
 
 `ikigai_cms::space()` names itself `urn:iki:space:cms` (`ikigai_cms::SPACE_ID`; ledger

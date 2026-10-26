@@ -138,18 +138,16 @@ fn text(repr: &Representation) -> String {
     String::from_utf8(repr.bytes.clone()).expect("UTF-8")
 }
 
-/// The walk saw exactly the one endpoint, one action, and skipped nothing but
-/// FAILURES (conformance 0.10.0's check, off unless a suite opts in with
-/// `check_failures()`; the next wave). A
-/// second endpoint bound by `space()` without a line here would be held to a
-/// weaker standard.
+/// The walk saw exactly the one endpoint and one action, with no skipped checks.
+/// Conformance 0.11 enables DATATYPES and FAILURES by default. A second endpoint
+/// bound by `space()` without a line here would be held to a weaker standard.
 fn assert_shape(report: &Report) {
     assert_eq!(report.endpoints, 1, "bookmarks: {report}");
     assert_eq!(report.actions, 1, "one Source: {report}");
     assert_eq!(
         report.checks.skipped().count(),
-        1,
-        "only FAILURES (opt-in) is skipped: {report}"
+        0,
+        "every conformance check runs: {report}"
     );
 }
 
