@@ -65,7 +65,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ikigai_conformance::{rdf, Fixture, Report, Suite};
+use ikigai_conformance::{rdf, Expected, Fixture, Report, Suite};
 use ikigai_core::{
     ArgRef, Capability, Error, Expiry, Iri, Kernel, Representation, Request, Result, Thread, Verb,
 };
@@ -110,9 +110,12 @@ fn kernel() -> Kernel {
 
 /// The suite, configured for this module: a real bookmarks text for `in`. The
 /// Dublin Core namespace the faces speak is well known to the suite, so nothing
-/// registers it.
-fn suite() -> Suite {
-    Suite::new().fixture(Fixture::new(BOOKMARKS, Verb::Source).arg("in", ORG))
+/// registers it. The shared space also lets BODIES compare the endpoint methods
+/// directly. No input declares `reads_body`, so BODY-INPUTS needs no content store.
+fn suite(space: Arc<ikigai_core::EndpointSpace>) -> Suite {
+    Suite::new()
+        .body_space(space)
+        .fixture(Fixture::new(BOOKMARKS, Verb::Source).arg("in", ORG))
 }
 
 fn source(org: Option<&str>) -> Request {
@@ -139,7 +142,7 @@ fn text(repr: &Representation) -> String {
 }
 
 /// The walk saw exactly the one endpoint and one action, with no skipped checks.
-/// Conformance 0.11 enables DATATYPES and FAILURES by default. A second endpoint
+/// Conformance 0.12 enables BODIES and BODY-INPUTS by default. A second endpoint
 /// bound by `space()` without a line here would be held to a weaker standard.
 fn assert_shape(report: &Report) {
     assert_eq!(report.endpoints, 1, "bookmarks: {report}");
@@ -153,15 +156,16 @@ fn assert_shape(report: &Report) {
 
 #[test]
 fn conforms() {
-    let kernel = kernel();
-    let report = suite()
+    let space = Arc::new(ikigai_cms::space());
+    let kernel = Kernel::new(space.clone());
+    let report = suite(space)
         .pure(BOOKMARKS)
         .cacheable(BOOKMARKS)
         .self_named_space("cms", ikigai_cms::space)
         .run_blocking(&kernel);
     // Printed even when clean (`--nocapture`): the report is the record.
     eprintln!("{report}");
-    assert!(report.is_clean(), "{report}");
+    report.assert_clean_with(&Expected::new().no_opt_outs().nothing_unprobed());
     assert_shape(&report);
     assert_eq!(ikigai_core::space_iri("cms").as_str(), ikigai_cms::SPACE_ID);
 }
