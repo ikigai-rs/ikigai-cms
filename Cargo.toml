@@ -21,6 +21,6 @@ ikigai-core = "0.2.0"
 [dev-dependencies]
 futures = "0.3"
 # The module recipe as one test (`tests/conformance.rs`): every endpoint this crate
-# binds, every action each declares, every checkable rule at once. 0.11 enables
-# DATATYPES and FAILURES by default, alongside core 0.2.0.
-ikigai-conformance = "0.11.0"
+# binds, every action each declares, every checkable rule at once. 0.12 enables
+# BODIES and BODY-INPUTS by default.
+ikigai-conformance = "0.12.0"
