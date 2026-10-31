@@ -100,6 +100,12 @@ scheme; `dc:subject` on headings; URLs-in-bodies → bookmarks), Web-Annotation
 `urn:httpHead` + golden threads), and a WebGPU reading room where a *view is a
 query* and *types are renderers*.
 
+## Accessibility
+
+What this crate writes that people read (the bookmark graph, the note for a dropped heading, the
+endpoint's description), the rules it follows and its known limitations are in
+[ACCESSIBILITY.md](ACCESSIBILITY.md). Report a barrier with an issue labeled `accessibility`.
+
 ## License
 
 MIT OR Apache-2.0.
