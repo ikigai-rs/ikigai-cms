@@ -36,6 +36,16 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   cuts here): the input arrives by value and is the cache key, and the file's thread
   lives on the file's representation upstream of the pipe.
 
+## 0.4.0 (2026-11-03)
+
+Moves to `ikigai-core` 0.3.0, the scoped content store release (ledger #2965),
+and `ikigai-conformance` 0.14.0. Core types are part of this crate's public API,
+so consumers must adopt this breaking minor release together with core 0.3.0.
+Held content belongs to the delivering capability; a hold without a principal
+belongs to root, and `ContentStore::put` and `put_replay` are root-only.
+This crate accepts bookmarks by value and makes no content-store writes.
+The endpoint and its Turtle output are unchanged.
+
 ## 0.3.0 (2026-10-26)
 
 Moves to `ikigai-core` 0.2.0, the streams release (ledger #2261), and
