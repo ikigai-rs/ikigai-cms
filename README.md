@@ -60,15 +60,15 @@ endpoint and its output are unchanged.
 
 ## 0.2.0 (2026-10-09)
 
-`ikigai_cms::space()` names itself `urn:iki:space:cms` (`ikigai_cms::SPACE_ID`; ledger
-[#987](http://localhost:1060/l/default/item/987)). The name changes what a host sees in
+`ikigai_cms::space()` names itself `urn:iki:space:cms` (`ikigai_cms::SPACE_ID`).
+The name changes what a host sees in
 `answered_by`, `urn:kernel:topology` and cache partitioning, so this is a **minor** bump: a
 host adopts it deliberately. Requires `ikigai-core` 0.1.89. The endpoint and its output are
 unchanged.
 
 ## 0.1.4 (2026-10-07)
 
-Parser fixes from the 2026-10-07 audit (ledger [#876](http://localhost:1060/l/default/item/876); `tests/parser_audit.rs`). The
+Parser fixes from the 2026-10-07 audit (`tests/parser_audit.rs`). The
 public API is unchanged, so the version call is a **patch: 0.1.4** (not bumped here).
 
 - **Every heading is a record boundary.** A heading whose `[[` never closes no longer
