@@ -36,6 +36,15 @@ SELECT ?x WHERE { ?x <http://purl.org/dc/elements/1.1/subject> "wasm" }
   cuts here): the input arrives by value and is the cache key, and the file's thread
   lives on the file's representation upstream of the pipe.
 
+## 0.5.0 (2026-11-21)
+
+Moves to `ikigai-core` 0.4.0 (scope opacity, structured denials; the core 0.4.0
+cascade, epic #3893) and `ikigai-conformance` 0.15.0. Core types are part of this
+crate's public API, so consumers must adopt this breaking minor release together
+with core 0.4.0. No source change was needed: this crate neither inspects its
+scope nor matches on `Error::Denied`. The endpoint and its Turtle output are
+unchanged.
+
 ## 0.4.0 (2026-11-03)
 
 Moves to `ikigai-core` 0.3.0, the scoped content store release (ledger #2965),
