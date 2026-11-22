@@ -413,3 +413,46 @@ fn control_every_awkward_character_escapes_to_valid_turtle() {
         assert!(subject_of(&ttl, url.trim()).is_some(), "{n:?}\n{ttl}");
     }
 }
+
+#[test]
+fn tag_property_continuations_are_included_on_their_bookmark() {
+    let org = "** [[https://a.example][A]]\n   :PROPERTIES:\n   :TAGS: one\n   :TAGS+: two three\n   :tag+: four\n   :TAGS: five\n   :END:\n** [[https://b.example][B]]\n   :TAGS+: six\n";
+    let ttl = bookmarks_to_turtle(org);
+    assert_eq!(
+        values(&ttl, "https://a.example", "subject"),
+        ["one", "two", "three", "four", "five"],
+        "{ttl}"
+    );
+    assert_eq!(
+        values(&ttl, "https://b.example", "subject"),
+        ["six"],
+        "{ttl}"
+    );
+}
+
+#[test]
+fn synthetic_links_have_stable_named_subjects_and_preserve_unicode() {
+    let org = "** [[file:résumé.org::*Café][Café ☕]]\n   :TAGS: 日本語\n** [[id:abc-123]]\n** [[custom:α%20β][Custom]]\n";
+    let ttl = bookmarks_to_turtle(org);
+    assert_eq!(ttl, bookmarks_to_turtle(org));
+    for (url, title) in [
+        ("file:résumé.org::*Café", "Café ☕"),
+        ("id:abc-123", "id:abc-123"),
+        ("custom:α%20β", "Custom"),
+    ] {
+        assert_eq!(values(&ttl, url, "title"), [title], "{ttl}");
+        let subject = subject_of(&ttl, url).unwrap();
+        assert!(subject.starts_with("urn:cms:bookmark:"), "{subject}");
+        let moved = bookmarks_to_turtle(&format!(
+            "** [[other:unrelated][Other]]\n** [[{url}][Changed]]\n"
+        ));
+        assert_eq!(subject_of(&moved, url), Some(subject));
+    }
+    assert_eq!(
+        values(&ttl, "file:résumé.org::*Café", "subject"),
+        ["日本語"]
+    );
+    assert!(triples(&ttl)
+        .iter()
+        .all(|(subject, _, _)| subject.starts_with("urn:cms:bookmark:")));
+}

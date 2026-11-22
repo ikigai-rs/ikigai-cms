@@ -304,18 +304,15 @@ fn collapse_ws(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// A `:TAG:`/`:TAGS:` drawer line (case-insensitive) → its whitespace-separated
-/// tags; `None` for any other line.
+/// A `:TAG:`/`:TAGS:` property or its `+` continuation (case-insensitive) →
+/// its whitespace-separated tags; `None` for any other line.
 fn tag_line(line: &str) -> Option<Vec<String>> {
     let t = line.trim();
     let lower = t.to_ascii_lowercase();
-    let cut = if lower.starts_with(":tag:") {
-        5
-    } else if lower.starts_with(":tags:") {
-        6
-    } else {
-        return None;
-    };
+    let cut = [":tag:", ":tags:", ":tag+:", ":tags+:"]
+        .iter()
+        .find(|prefix| lower.starts_with(**prefix))?
+        .len();
     Some(t[cut..].split_whitespace().map(str::to_string).collect())
 }
 
